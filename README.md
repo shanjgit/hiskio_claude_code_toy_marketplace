@@ -49,6 +49,7 @@ All screenshots were captured with Playwright at **iPhone 12 Pro** resolution (3
 - `eslint` — linting
 - `playwright` (via MCP) — browser automation used for end-to-end UI testing and screenshot capture
 - `context7` (via MCP) — live library documentation injected into AI sessions; see [Context7](#context7--live-library-docs) below
+- `@sentry/react` — error monitoring and performance tracing; see [Sentry](#sentry--error-monitoring) below
 
 ## Features
 
@@ -125,6 +126,66 @@ The stack combines several libraries that evolve quickly — Supabase JS v2, Tan
 | shadcn/ui component installation and customisation | `/shadcn-ui/ui` |
 
 During the messaging implementation review, Context7 was used to verify the correct Supabase Realtime `postgres_changes` subscription API — confirming that `.channel().on('postgres_changes', ...).subscribe()` and `supabase.removeChannel(channel)` are the current idiomatic patterns for the JS v2 client.
+
+## Sentry — Error Monitoring
+
+This project uses **Sentry** (`@sentry/react` v10) for real-time error monitoring, performance tracing, and session replay. It is configured via the MCP Sentry server, which lets Claude Code create projects, retrieve DSNs, and query issues directly from the AI session.
+
+### Setup
+
+Sentry is initialised in `src/main.tsx` before the React tree mounts:
+
+```ts
+Sentry.init({
+  dsn: "...",
+  environment: import.meta.env.MODE,        // "development" | "production"
+  integrations: [
+    Sentry.browserTracingIntegration(),     // page-load and navigation spans
+    Sentry.replayIntegration(),             // session replay video on errors
+  ],
+  tracesSampleRate: 1.0,                   // capture 100% of transactions (reduce in prod)
+  replaysSessionSampleRate: 0.1,           // replay 10% of normal sessions
+  replaysOnErrorSampleRate: 1.0,           // always replay sessions that hit an error
+});
+```
+
+### How it is used here
+
+| Feature | How |
+|---|---|
+| **Automatic error capture** | Any uncaught exception in the React tree is sent to Sentry automatically via the SDK's global error handler |
+| **Error boundary** | `About.tsx` is wrapped with `Sentry.withErrorBoundary`, which catches render errors, sends them to Sentry, and shows a fallback UI with a user feedback dialog |
+| **Manual event capture** | `Sentry.captureMessage()` sends discrete info/warning events (used on the About page test button) |
+| **Performance tracing** | `browserTracingIntegration` automatically instruments route transitions and XHR/fetch calls |
+| **Session replay** | `replayIntegration` records a video-like replay of the user's session, attached to any error event |
+
+### MCP Sentry integration
+
+The Sentry MCP server (`mcp__sentry__*` tools) is used in Claude Code sessions to:
+
+- **Create projects** — `create_project` provisions a new Sentry project and returns the DSN in one step
+- **Query issues** — `search_issues` and `get_sentry_resource` let Claude look up live error events without leaving the editor
+- **Analyse issues** — `analyze_issue_with_seer` runs Sentry's AI root-cause analysis on a specific issue
+
+### Testing the integration
+
+Navigate to `/about` in the running app. Two buttons are available:
+
+| Button | What it does |
+|---|---|
+| **Send test message** | Calls `Sentry.captureMessage(...)` — appears as an Info event in the Sentry dashboard |
+| **Throw test error** | Throws a JavaScript exception inside the component — caught by the error boundary, sent to Sentry as an exception, and triggers the Sentry user-feedback dialog |
+
+Events appear in the Sentry dashboard at `https://frealancer-i0.sentry.io` within a few seconds.
+
+### Sentry project details
+
+| Field | Value |
+|---|---|
+| Organisation | `frealancer-i0` |
+| Project | `toy-marketplace` |
+| Platform | `javascript-react` |
+| Dashboard | https://frealancer-i0.sentry.io/projects/toy-marketplace/ |
 
 ## Playwright — Browser Automation & Screenshot Capture
 
