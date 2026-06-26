@@ -10,15 +10,27 @@ A peer-to-peer toy marketplace web app where parents can buy and sell second-han
 
 All screenshots were captured with Playwright at **iPhone 12 Pro** resolution (390 × 844) against the local dev server.
 
-| File | Description |
-|---|---|
-| `imgs/homepage-purple.png` | Homepage with the purple brand theme applied |
-| `imgs/user-profile.png` | Profile page immediately after a new user signs up |
-| `imgs/end-to-end-profile.png` | Profile page for a freshly created seller account (end-to-end flow) |
-| `imgs/end-to-end-create-listing.png` | Create-listing form filled with product name, price, image, and location before publishing |
-| `imgs/end-to-end-conversation-001.png` | Full buyer–seller conversation: buyer asks about availability and requests a discount; seller replies |
-| `imgs/homepage-001.png` | Homepage baseline screenshot |
-| `imgs/homepage-verify-toy-bear.png` | Homepage after restoring the Toy Bear product image, confirming both listings appear correctly |
+### Homepage
+
+![Homepage with purple brand theme](imgs/homepage-purple.png)
+
+![Homepage baseline](imgs/homepage-001.png)
+
+![Homepage confirming both listings display correctly](imgs/homepage-verify-toy-bear.png)
+
+### Auth & Profile
+
+![Profile page immediately after a new user signs up](imgs/user-profile.png)
+
+![Profile page for a freshly created seller account](imgs/end-to-end-profile.png)
+
+### Create Listing
+
+![Create-listing form filled and ready to publish](imgs/end-to-end-create-listing.png)
+
+### Messaging
+
+![Full buyer–seller conversation](imgs/end-to-end-conversation-001.png)
 
 ## Tech Stack
 
@@ -126,6 +138,24 @@ The stack combines several libraries that evolve quickly — Supabase JS v2, Tan
 | shadcn/ui component installation and customisation | `/shadcn-ui/ui` |
 
 During the messaging implementation review, Context7 was used to verify the correct Supabase Realtime `postgres_changes` subscription API — confirming that `.channel().on('postgres_changes', ...).subscribe()` and `supabase.removeChannel(channel)` are the current idiomatic patterns for the JS v2 client.
+
+### How to invoke Context7 in a Claude Code session
+
+Context7 is available as an MCP tool. You do not need to call it manually — Claude Code triggers it automatically when you ask a question about a library. Under the hood, two tool calls happen:
+
+1. **`resolve-library-id`** — maps a plain name like "Supabase" or "TanStack Query" to a canonical Context7 library ID.
+2. **`query-docs`** — fetches a focused documentation excerpt from the resolved library, filtered by a natural-language topic.
+
+**Example prompts that trigger Context7 in this project:**
+
+| What you type | What Context7 fetches |
+|---|---|
+| "How do I set up a Realtime subscription in Supabase?" | Supabase JS v2 Realtime channel docs |
+| "What changed between TanStack Query v4 and v5?" | TanStack Query v5 migration guide |
+| "How does `useNavigate` work in React Router v6?" | React Router v6 hooks reference |
+| "How do I add a new shadcn/ui component?" | shadcn/ui CLI and component installation docs |
+
+Context7 resolves docs at the **exact version installed in this project** (`package.json` is the source of truth), so you always get API signatures that match the code — not a generic or outdated snapshot.
 
 ## Sentry — Error Monitoring
 
