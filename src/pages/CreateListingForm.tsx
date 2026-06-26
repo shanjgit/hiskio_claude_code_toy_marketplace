@@ -305,8 +305,17 @@ const CreateListingForm = () => {
       // Upload new images to storage and create image records
       if (selectedImages.length > 0) {
         const imagePromises = selectedImages.map(async (image, index) => {
-          // Sanitize filename by replacing spaces with underscores
-          const sanitizedName = image.name.replace(/\s+/g, '_');
+          // Strip non-ASCII chars, replace spaces/special chars with underscores,
+          // collapse runs of underscores, and preserve the extension.
+          const ext = image.name.match(/\.[^.]+$/)?.[0] ?? '.jpg';
+          const base = image.name
+            .replace(/\.[^.]+$/, '')          // remove extension
+            .replace(/[^\x00-\x7F]/g, '')     // drop non-ASCII (e.g. Chinese)
+            .replace(/[^a-zA-Z0-9._-]/g, '_') // replace unsafe chars
+            .replace(/_+/g, '_')              // collapse runs
+            .replace(/^_|_$/g, '')            // trim leading/trailing
+            || 'image';                       // fallback if name becomes empty
+          const sanitizedName = `${base}${ext}`;
           const fileName = `${Date.now()}_${index}_${sanitizedName}`;
           const filePath = `${user.id}/${fileName}`;
           
