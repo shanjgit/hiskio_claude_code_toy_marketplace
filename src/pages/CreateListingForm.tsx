@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/react";
 import NavigationBar from "@/components/NavigationBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,31 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { resizeImage } from "@/lib/imageUtils";
 import { ProductWithImage } from "@/hooks/useUserProducts";
+
+const BANNED_WORDS = ["fuck", "murder", "kill", "shit", "bitch", "asshole", "cunt", "damn", "bastard"];
+
+function checkProfanity(fields: Record<string, string>, userId: string): void {
+  const pattern = new RegExp(`\\b(${BANNED_WORDS.join("|")})\\b`, "gi");
+  const hits: { field: string; word: string }[] = [];
+
+  for (const [field, value] of Object.entries(fields)) {
+    const matches = value.match(pattern);
+    if (matches) {
+      matches.forEach((word) => hits.push({ field, word: word.toLowerCase() }));
+    }
+  }
+
+  if (hits.length === 0) return;
+
+  Sentry.captureMessage("Profanity detected in listing submission", {
+    level: "warning",
+    extra: {
+      userId,
+      hits,
+      fields,
+    },
+  });
+}
 
 const CreateListingForm = () => {
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
@@ -51,12 +77,12 @@ const CreateListingForm = () => {
       for (const file of Array.from(files).slice(0, 5 - selectedImages.length)) {
         if (file.size <= MAX_FILE_SIZE) {
           try {
-            // Resize the image while maintaining aspect ratio
             const resizedFile = await resizeImage(file, IMAGE_RESIZE_WIDTH_PX, IMAGE_RESIZE_HEIGHT_PX);
             validFiles.push(resizedFile);
           } catch (error) {
-            console.error("Error resizing image:", error);
-            invalidFiles.push(`${file.name} (resize failed)`);
+            console.error("Error resizing image, using original:", error);
+            // Fall back to the original file so the upload still proceeds
+            validFiles.push(file);
           }
         } else {
           invalidFiles.push(file.name);
@@ -217,6 +243,19 @@ const CreateListingForm = () => {
 
       const priceNumber = Number(price);
       const yearNumber = parseInt(yearPurchased, 10);
+
+      // Check text fields for profanity and report to Sentry before saving
+      checkProfanity(
+        {
+          product_name: productName.trim(),
+          color: color.trim(),
+          leather: leather.trim(),
+          stamp: stamp.trim(),
+          location: location.trim(),
+          description: description.trim(),
+        },
+        user.id
+      );
 
       const payload = {
         user_id: user.id,

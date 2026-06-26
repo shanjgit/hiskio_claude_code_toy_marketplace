@@ -46,24 +46,27 @@ export async function resizeImage(
       // Draw the image on the canvas
       ctx.drawImage(img, 0, 0, width, height);
       
-      // Convert the canvas to a Blob
+      // Always convert to JPEG so any input format (HEIC, WebP, BMP, etc.)
+      // produces a universally supported output that Canvas can encode.
+      const outputType = 'image/jpeg';
+      const outputName = file.name.replace(/\.[^.]+$/, '.jpg');
+
       canvas.toBlob(
         (blob) => {
           if (!blob) {
             reject(new Error('Canvas toBlob failed'));
             return;
           }
-          
-          // Create a new File object from the Blob
-          const resizedFile = new File([blob], file.name, {
-            type: file.type,
+
+          const resizedFile = new File([blob], outputName, {
+            type: outputType,
             lastModified: Date.now(),
           });
-          
+
           resolve(resizedFile);
         },
-        file.type,
-        0.9 // Quality parameter (0.0 to 1.0)
+        outputType,
+        0.9
       );
     };
     
