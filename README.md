@@ -6,6 +6,20 @@ A peer-to-peer toy marketplace web app where parents can buy and sell second-han
 
 ![Sign up and sell a product](video/demo-sign-up-and-sell-product.gif)
 
+## Screenshots
+
+All screenshots were captured with Playwright at **iPhone 12 Pro** resolution (390 × 844) against the local dev server.
+
+| File | Description |
+|---|---|
+| `imgs/homepage-purple.png` | Homepage with the purple brand theme applied |
+| `imgs/user-profile.png` | Profile page immediately after a new user signs up |
+| `imgs/end-to-end-profile.png` | Profile page for a freshly created seller account (end-to-end flow) |
+| `imgs/end-to-end-create-listing.png` | Create-listing form filled with product name, price, image, and location before publishing |
+| `imgs/end-to-end-conversation-001.png` | Full buyer–seller conversation: buyer asks about availability and requests a discount; seller replies |
+| `imgs/homepage-001.png` | Homepage baseline screenshot |
+| `imgs/homepage-verify-toy-bear.png` | Homepage after restoring the Toy Bear product image, confirming both listings appear correctly |
+
 ## Tech Stack
 
 ### Frontend
@@ -33,6 +47,7 @@ A peer-to-peer toy marketplace web app where parents can buy and sell second-han
 - `supabase-js` — official JS client that auto-switches between local and remote Supabase based on hostname
 - `supabase CLI` — local development stack (Postgres + Auth + Storage + Studio) running in Docker
 - `eslint` — linting
+- `playwright` (via MCP) — browser automation used for end-to-end UI testing and screenshot capture
 
 ## Features
 
@@ -90,6 +105,26 @@ src/
 
 Row Level Security is enabled on all tables. Users can only read/write their own data. Public product browsing is handled via `SECURITY DEFINER` RPC functions so RLS logic stays server-side.
 
+## Playwright — Browser Automation & Screenshot Capture
+
+This project uses **Playwright** (exposed as an MCP server tool) to drive a real Chromium browser against the local dev server. It is used to:
+
+- **End-to-end flow validation** — sign-up, profile view, product listing creation (including image upload), and buyer–seller messaging are all exercised through real browser interactions, not mocked data.
+- **Screenshot capture** — every meaningful UI state is captured at iPhone 12 Pro dimensions (390 × 844) so visual regressions are immediately obvious. Screenshots are committed to `imgs/` for reference.
+- **Accessibility-tree navigation** — Playwright's snapshot mode returns the page's accessibility tree instead of raw HTML, making it easy to locate interactive elements by role and label rather than brittle CSS selectors.
+
+### How it is used here
+
+| Scenario | What Playwright does |
+|---|---|
+| Sign-up | Navigates to `/auth`, switches to the Sign Up tab, fills the form, and submits |
+| Profile screenshot | Navigates to `/profile` and calls `browser_take_screenshot` |
+| Create listing | Navigates to `/create-listing/new`, fills all fields, triggers the file chooser, uploads an image, and clicks Publish |
+| Messaging | Sends a message from the product detail page, opens the conversation, sends a follow-up, then switches accounts and replies |
+| Theme verification | Navigates to `/`, resizes to mobile viewport, takes a screenshot to confirm brand colours are applied |
+
+Screenshots are saved directly to the project root then moved to `imgs/` for organised storage.
+
 ## Local Development
 
 ### Prerequisites
@@ -122,10 +157,12 @@ npm run dev
 
 Available after `supabase db reset`:
 
-| Email | Password |
-|---|---|
-| user001@gmail.com | Test1234! |
-| user002@gmail.com | Test1234! |
+| Email | Password | Role |
+|---|---|---|
+| user001@gmail.com | Test1234! | Generic test user |
+| user002@gmail.com | Test1234! | Generic test user |
+
+The seller account **doraemon@joke.com** (password `11111111A`) is created via the Supabase Auth admin API after `db reset` — see the seed notes in `supabase/seed.sql`. It owns the seeded **Toy Bear** listing.
 
 ### Database Migrations
 
