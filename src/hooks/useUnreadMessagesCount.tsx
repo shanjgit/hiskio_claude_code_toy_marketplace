@@ -59,9 +59,37 @@ export const useUnreadMessagesCount = () => {
     }
   }, [user, authLoading]);
 
-  return { 
-    unreadCount, 
-    loading: loading || authLoading, 
-    refetch: fetchUnreadCount 
+  // Real-time: re-count when any message is inserted or a read receipt is written
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`unread-count:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => fetchUnreadCount()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'message_status' },
+        () => fetchUnreadCount()
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'message_status' },
+        () => fetchUnreadCount()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
+  return {
+    unreadCount,
+    loading: loading || authLoading,
+    refetch: fetchUnreadCount
   };
 };

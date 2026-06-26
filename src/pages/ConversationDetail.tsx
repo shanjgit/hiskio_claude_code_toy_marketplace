@@ -41,6 +41,7 @@ const ConversationDetail = () => {
   const [newMessage, setNewMessage] = useState("");
   const [loading, setLoading] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const initialScrollDoneRef = useRef(false);
   const readMarkedRef = useRef<Set<string>>(new Set());
@@ -72,7 +73,7 @@ const ConversationDetail = () => {
       fetchConversationDetails();
       fetchMessages();
     }
-  }, [user, conversationId, navigate, loading]);
+  }, [user, conversationId, navigate]);
 
   // Real-time message subscription
   useEffect(() => {
@@ -109,9 +110,8 @@ const ConversationDetail = () => {
           
           // Auto-scroll for all new messages (both from me and other users)
           setTimeout(() => {
-            const messagesContainer = document.querySelector('.overflow-y-auto');
-            if (messagesContainer) {
-              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            if (messagesContainerRef.current) {
+              messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
             }
             messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
           }, 100);
@@ -326,9 +326,8 @@ const ConversationDetail = () => {
       
       // Auto-scroll to bottom after sending message
       setTimeout(() => {
-        const messagesContainer = document.querySelector('.overflow-y-auto');
-        if (messagesContainer) {
-          messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        if (messagesContainerRef.current) {
+          messagesContainerRef.current.scrollTop = messagesContainerRef.current.scrollHeight;
         }
         messagesEndRef.current?.scrollIntoView({ behavior: "instant" });
       }, 100);
@@ -478,7 +477,7 @@ const ConversationDetail = () => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messagesVisible ? (
           <>
             {messages.map((message, index) => {

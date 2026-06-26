@@ -40,6 +40,26 @@ const Conversations = () => {
     }
   }, [user, navigate, loading]);
 
+  // Real-time: refresh conversation list when any new message arrives in the user's conversations
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel(`conversation-list:${user.id}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'messages' },
+        () => {
+          fetchConversations();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]);
+
   const fetchConversations = async () => {
     if (!user) return;
     

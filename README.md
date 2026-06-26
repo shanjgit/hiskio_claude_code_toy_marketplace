@@ -48,6 +48,7 @@ All screenshots were captured with Playwright at **iPhone 12 Pro** resolution (3
 - `supabase CLI` — local development stack (Postgres + Auth + Storage + Studio) running in Docker
 - `eslint` — linting
 - `playwright` (via MCP) — browser automation used for end-to-end UI testing and screenshot capture
+- `context7` (via MCP) — live library documentation injected into AI sessions; see [Context7](#context7--live-library-docs) below
 
 ## Features
 
@@ -104,6 +105,26 @@ src/
 | `saved_products` | User wishlist (many-to-many between users and products) |
 
 Row Level Security is enabled on all tables. Users can only read/write their own data. Public product browsing is handled via `SECURITY DEFINER` RPC functions so RLS logic stays server-side.
+
+## Context7 — Live Library Docs
+
+This project uses **Context7** as an MCP server tool to pull current, version-accurate documentation directly into Claude Code sessions. Without it, the AI assistant would rely on training-data snapshots that may be months or years out of date.
+
+### Why it matters here
+
+The stack combines several libraries that evolve quickly — Supabase JS v2, TanStack Query v5, React Router v6, shadcn/ui — and subtle API differences between major versions (e.g. TanStack Query v4 → v5 renamed `cacheTime` to `gcTime`, Supabase v1 → v2 changed the auth API) can cause silent bugs if the wrong docs are referenced. Context7 resolves the correct version's docs at query time.
+
+### How it is used here
+
+| Task | Context7 library queried |
+|---|---|
+| Supabase Realtime channel setup and cleanup | `/llmstxt/supabase_llms-full_txt` |
+| TanStack Query v5 hooks (`useQuery`, `useMutation`, cache invalidation) | `/tanstack/query` @ `v5.90.3` |
+| React Router v6 nested routes, `useParams`, `useNavigate` | `/websites/reactrouter_6_30_3` |
+| React Hook Form + Zod resolver integration | `/react-hook-form/resolvers` + `/websites/zod_dev` |
+| shadcn/ui component installation and customisation | `/shadcn-ui/ui` |
+
+During the messaging implementation review, Context7 was used to verify the correct Supabase Realtime `postgres_changes` subscription API — confirming that `.channel().on('postgres_changes', ...).subscribe()` and `supabase.removeChannel(channel)` are the current idiomatic patterns for the JS v2 client.
 
 ## Playwright — Browser Automation & Screenshot Capture
 
