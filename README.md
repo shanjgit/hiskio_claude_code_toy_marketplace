@@ -338,3 +338,77 @@ npm run build:dev    # dev-mode build
 npm run lint         # ESLint
 npm run preview      # preview production build locally
 ```
+
+## Claude Code Hooks
+
+Claude Code supports **hooks** — shell commands wired to specific events in the AI session lifecycle. Hooks run automatically without any prompt from the developer; they fire whenever the matching event occurs, receive structured JSON describing that event over stdin, and can return a JSON response that either allows or blocks the action. This makes hooks ideal for enforcing project standards that should never be skipped regardless of how the AI is asked to work.
+
+All hooks for this project are configured in `.claude/settings.json` and implemented as TypeScript scripts under `.claude/hooks/`. There are four hooks active in this project.
+
+### `UserPromptSubmit` — skills reminder
+
+**Event:** fires every time the user sends a message, before the model processes it.
+
+**What it does:** echoes a short reminder — `"MUST check whether there are relevant skills to use first."` — into the system context for that turn. This message appears as a `<system-reminder>` tag visible to the model but not to the user.
+
+**Why it exists:** without this nudge, the model can start planning or exploring files before remembering to invoke the `supabase` skill. The reminder fires unconditionally so the check is never skipped, even for short or ambiguous prompts.
+
+### `Notification` — sound alert
+
+**Event:** fires whenever Claude Code emits a notification — most commonly when it is waiting for the user to approve or deny a permission prompt (e.g. running a Bash command in default mode).
+
+**What it does:** calls `afplay` (macOS built-in audio player) to play a short MP3 stored at `.claude/hooks/default-notification-hook-reminder.mp3`. It logs activity to `notification_hook_debug.log`.
+
+**Why it exists:** permission prompts are easy to miss when working in another window. The sound draws attention back to the terminal so approvals are not left pending.
+
+### `PreToolUse` (Bash) — lint gate before commits
+
+**Event:** fires before every `Bash` tool call, matched on the `Bash` tool name.
+
+**What it does:** inspects the command Claude is about to run. If it contains `git commit`, the hook:
+1. Identifies all staged files (`git diff --cached --name-only`).
+2. Runs **ESLint** (`npx eslint`) on any staged `.ts` / `.tsx` / `.js` / `.jsx` files.
+3. Runs **flake8** on any staged `.py` files, and optionally **black --check** if a `requirements.txt` or `pyproject.toml` is present.
+4. Returns `decision: "block"` if any linter reports errors, preventing the commit from landing. Returns `decision: "approve"` if everything passes.
+
+For all other Bash commands the hook immediately approves without running any checks.
+
+**Why it exists:** it ensures the AI can never commit code that fails the project linter, regardless of whether it was told to skip checks. The gate is in the harness, not in the prompt, so it cannot be talked around.
+
+### `PostToolUse` (Edit / Write) — automatic test runner
+
+**Event:** fires after any `Edit`, `MultiEdit`, or `Write` tool call completes successfully.
+
+**What it does:** checks whether the file that was just written is a source file (inside `src/`, with a `.ts` / `.tsx` / `.js` / `.jsx` extension, and not a `.test.` or `.spec.` file). If it is, the hook auto-discovers the test suite by inspecting `package.json` scripts and `devDependencies` — looking for `test:unit`, `vitest`, or `jest` in that order — and runs the tests. It injects the result back into the session as a `systemMessage` so the model sees whether tests passed or failed without needing to be asked.
+
+If no test suite is found (as is currently the case in this project, which has no unit tests configured), the hook reports that instead of silently doing nothing.
+
+**Why it exists:** it closes the feedback loop between code changes and correctness automatically. The model does not need to remember to run tests after editing; the harness does it.
+
+---
+
+All four hooks are non-blocking in the error path: if a hook itself throws an exception or cannot parse its input, it falls back to `permissionDecision: "allow"` so that hook bugs never freeze the development workflow. Debug output is written to dedicated log files in `.claude/hooks/` for troubleshooting.
+
+## Claude Code Skills
+
+Claude Code supports **project-defined skills** — instruction files stored under `.claude/skills/<name>/SKILL.md` that are loaded into the AI session whenever a matching task comes up. Unlike general memory or CLAUDE.md guidelines, a skill is a structured, domain-specific runbook: it tells the model exactly what to do, what order to do it in, and what pitfalls to avoid for a particular class of work. Skills are invoked explicitly (via the `Skill` tool) and their content is injected into the conversation at the moment they are needed, so the guidance is always in context when it matters.
+
+This project currently defines one skill.
+
+### `supabase` skill
+
+**Location:** `.claude/skills/supabase/SKILL.md`
+
+The `supabase` skill is declared as **required for all database work** and must be invoked before any task that touches the Supabase backend — migrations, RPC functions, schema changes, RLS policies, or deployment. Its purpose is to enforce a consistent, safe workflow so that the AI assistant never takes a shortcut that could corrupt schema history or introduce a permissions bug.
+
+The core rules it encodes are:
+
+**Migration discipline.** Every schema change must go through a versioned migration file under `supabase/migrations/`, created with `supabase migration new <name>` before any SQL is written. Direct SQL console edits are explicitly forbidden. This keeps the full schema history in git and makes `supabase db reset` a reliable way to rebuild the database from scratch.
+
+**RPC-first data access.** The skill instructs the model to always check existing RPC functions in the consolidated migration before writing new queries. Direct table queries frequently hit RLS permission walls; `SECURITY DEFINER` RPC functions are the idiomatic escape hatch. The skill lists the required boilerplate: `DROP FUNCTION IF EXISTS` before `CREATE FUNCTION` (to handle return-type changes), explicit `LANGUAGE`, `SECURITY` level, and `SET search_path`, and a `GRANT EXECUTE` statement for the relevant roles.
+
+**Type regeneration.** After any schema change, the skill mandates running `npx supabase gen types typescript --local > src/integrations/supabase/types.ts` to keep the TypeScript layer in sync with the database. Skipping this step is a common source of silent type mismatches between the frontend and the actual table/function signatures.
+
+**Local-before-remote workflow.** All migrations are tested against the local Docker stack (`supabase db reset`) before being pushed to the remote project with `supabase db push`. The skill includes the full link/push command sequence and a verification checklist using `psql` and `\d` to confirm the schema landed correctly.
+
+**Why a skill rather than CLAUDE.md?** CLAUDE.md is loaded every session and kept deliberately short — it documents the overall architecture and points to conventions. The `supabase` skill is longer, more procedural, and only relevant when database work is in scope. Loading it on demand keeps the main context lean and ensures the detailed guidance appears precisely when needed rather than as background noise in every session.

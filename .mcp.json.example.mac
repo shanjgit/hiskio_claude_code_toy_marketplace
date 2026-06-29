@@ -3,7 +3,10 @@
     "playwright": {
       "command": "npx",
       "args": [
-        "@playwright/mcp@latest"
+        "-y",
+        "@playwright/mcp@latest",
+        "--browser",
+        "chrome"
       ]
     },
     "context7": {

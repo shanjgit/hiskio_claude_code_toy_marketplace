@@ -84,6 +84,7 @@ INSERT INTO public.products (
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed product image for Toy Bear
+-- NOTE: After db reset, also run supabase/seed-storage.sh to upload the actual image file.
 INSERT INTO public.product_images (
   product_id,
   image_url

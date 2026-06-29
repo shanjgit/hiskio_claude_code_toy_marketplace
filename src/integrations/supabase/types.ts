@@ -1,3 +1,39 @@
+Connecting to db 5432
+Unable to find image 'public.ecr.aws/supabase/postgres-meta:v0.96.1' locally
+v0.96.1: Pulling from supabase/postgres-meta
+7f0469884eb9: Pulling fs layer
+1061a5258f4e: Pulling fs layer
+3aa96371cb05: Pulling fs layer
+649294d53040: Pulling fs layer
+19351e083594: Pulling fs layer
+eb04ef52de3a: Pulling fs layer
+9b590c83e93c: Pulling fs layer
+4f6e2095427e: Pulling fs layer
+036bd28688ee: Pulling fs layer
+b1f4bffa7894: Pulling fs layer
+3aa96371cb05: Download complete
+7f0469884eb9: Download complete
+19351e083594: Download complete
+036bd28688ee: Download complete
+1061a5258f4e: Download complete
+649294d53040: Download complete
+b1f4bffa7894: Download complete
+d8cd7fa11bac: Download complete
+9b590c83e93c: Download complete
+4f6e2095427e: Download complete
+eb04ef52de3a: Download complete
+3aa96371cb05: Pull complete
+eb04ef52de3a: Pull complete
+9b590c83e93c: Pull complete
+7f0469884eb9: Pull complete
+1061a5258f4e: Pull complete
+649294d53040: Pull complete
+b1f4bffa7894: Pull complete
+4f6e2095427e: Pull complete
+19351e083594: Pull complete
+036bd28688ee: Pull complete
+Digest: sha256:2559d20aaa50f2eb86a6cb2e5af4e847e87139673bc214b4655c126d96c160b2
+Status: Downloaded newer image for public.ecr.aws/supabase/postgres-meta:v0.96.1
 export type Json =
   | string
   | number
@@ -268,6 +304,7 @@ export type Database = {
           first_name: string | null
           id: string
           last_name: string | null
+          nickname: string | null
           updated_at: string
           user_id: string
         }
@@ -277,6 +314,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          nickname?: string | null
           updated_at?: string
           user_id: string
         }
@@ -286,6 +324,7 @@ export type Database = {
           first_name?: string | null
           id?: string
           last_name?: string | null
+          nickname?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -332,10 +371,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      create_conversation: {
-        Args: { prod_id: string }
-        Returns: string
-      }
+      create_conversation: { Args: { prod_id: string }; Returns: string }
       get_conversation_details: {
         Args: { conv_id: string }
         Returns: {
@@ -383,6 +419,7 @@ export type Database = {
         Returns: {
           first_name: string
           last_name: string
+          nickname: string
           user_id: string
         }[]
       }
@@ -431,7 +468,7 @@ export type Database = {
         }[]
       }
       get_user_conversations: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           buyer_name: string
           first_image_url: string
@@ -446,7 +483,7 @@ export type Database = {
         }[]
       }
       get_user_saved_products: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           first_image_url: string
           location: string
@@ -462,26 +499,11 @@ export type Database = {
         Args: { conv_id: string }
         Returns: boolean
       }
-      is_participant_of_message: {
-        Args: { msg_id: string }
-        Returns: boolean
-      }
-      is_product_owner: {
-        Args: { product_uuid: string }
-        Returns: boolean
-      }
-      is_product_saved: {
-        Args: { product_uuid: string }
-        Returns: boolean
-      }
-      mark_conversation_read: {
-        Args: { conv_id: string }
-        Returns: undefined
-      }
-      mark_message_read: {
-        Args: { msg_id: string }
-        Returns: undefined
-      }
+      is_participant_of_message: { Args: { msg_id: string }; Returns: boolean }
+      is_product_owner: { Args: { product_uuid: string }; Returns: boolean }
+      is_product_saved: { Args: { product_uuid: string }; Returns: boolean }
+      mark_conversation_read: { Args: { conv_id: string }; Returns: undefined }
+      mark_message_read: { Args: { msg_id: string }; Returns: undefined }
       toggle_saved_product: {
         Args: { product_uuid: string }
         Returns: {
