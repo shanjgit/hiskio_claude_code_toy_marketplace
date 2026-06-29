@@ -6,6 +6,12 @@ A peer-to-peer toy marketplace web app where parents can buy and sell second-han
 
 ![Sign up and sell a product](video/demo-sign-up-and-sell-product.gif)
 
+### Subagent-captured screenshot
+
+The screenshot below was captured automatically by the **`ui-end-to-end-tester`** Claude Code subagent — invoked with a single prompt. The agent restarted the dev server, set the viewport to iPhone 12 Pro (390 × 844), navigated to the homepage, saved the screenshot, and closed the browser — no manual browser interaction required.
+
+![Homepage captured by ui-end-to-end-tester subagent](homepage-001.png)
+
 ## Screenshots
 
 All screenshots were captured with Playwright at **iPhone 12 Pro** resolution (390 × 844) against the local dev server.
@@ -236,6 +242,37 @@ This project uses **Playwright** (exposed as an MCP server tool) to drive a real
 | Theme verification | Navigates to `/`, resizes to mobile viewport, takes a screenshot to confirm brand colours are applied |
 
 Screenshots are saved directly to the project root then moved to `imgs/` for organised storage.
+
+## Claude Code Subagents
+
+This project uses **Claude Code subagents** — specialised AI agents launched from within the main Claude Code session — to offload focused, multi-step tasks without polluting the main conversation context.
+
+### `ui-end-to-end-tester`
+
+A dedicated subagent for browser automation and screenshot capture. It is invoked via the `Agent` tool with `subagent_type: "ui-end-to-end-tester"` and runs asynchronously in the background while the main session stays available.
+
+**What it does in a single prompt:**
+
+1. Kills any existing process on the configured port
+2. Starts the Vite dev server (`npm run dev`)
+3. Opens a Chromium browser and sets the viewport (e.g. iPhone 12 Pro: 390 × 844)
+4. Navigates to the target URL and waits for network idle
+5. Takes a screenshot and saves it to the project directory
+6. Closes the browser and reports what it observed (page title, visible content, console errors)
+
+**Example invocation (from the main Claude Code session):**
+
+```
+Use a subagent to restart the dev server, open the homepage at iPhone 12 Pro dimensions,
+take a screenshot named homepage-001.png, and close the browser.
+```
+
+**Why subagents here?**
+- Browser automation produces verbose tool output (snapshots, console logs, network events). Routing it through a subagent keeps that noise out of the main context window.
+- The main session stays responsive while the agent works — useful for longer test flows like sign-up, listing creation, or multi-account messaging.
+- The agent returns a structured summary (files saved, what was visible, any errors) rather than raw tool traces.
+
+**Note:** The Vite dev server in this project runs on **port 8080** (set in `vite.config.ts`), not the Vite default of 5173.
 
 ## Local Development
 
