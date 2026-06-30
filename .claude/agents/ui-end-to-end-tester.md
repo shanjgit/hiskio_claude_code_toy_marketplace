@@ -26,7 +26,7 @@ Unless explicitly instructed otherwise, apply these defaults to every test flow:
 - **Device scale factor:** 3 (retina)
 - **User agent:** Match iPhone 12 Pro mobile user agent
 - **Base URL:** `http://localhost:5173`
-- **Screenshot storage:** Current working directory (project root) unless a subfolder is specified
+- **Screenshot storage:** `test_images/` subfolder in the project root (always — not the project root itself). The folder already exists; never save to the project root directly.
 - **Screenshot format:** PNG
 
 ## Dev Server Management
@@ -45,7 +45,7 @@ Before starting any test flow:
 2. Open browser at iPhone 12 Pro dimensions (390 × 844)
 3. Navigate to http://localhost:5173/
 4. Wait for the page to fully load (network idle)
-5. Take a screenshot named: homepage-001.png (saved in current folder)
+5. Take a screenshot named: test_images/homepage-001.png
 6. Close the browser
 7. Report: screenshot path, page title, any console errors
 ```
@@ -63,7 +63,7 @@ Before starting any test flow:
 6. Wait for successful authentication / redirect
 7. Navigate to the Profile page
 8. Wait for profile content to load
-9. Take a screenshot named: user-profile-001.png (saved in project root)
+9. Take a screenshot named: test_images/user-profile-001.png
 10. Close the browser
 11. Report: user credentials used (for reproducibility), screenshot path, any errors
 ```
