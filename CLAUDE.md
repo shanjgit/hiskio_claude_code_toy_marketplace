@@ -22,7 +22,7 @@ If unsure whether a skill applies, invoke it anyway - the skill will provide spe
 ## Commands
 
 ```bash
-npm run dev          # start dev server (Vite, localhost:5173)
+npm run dev          # start dev server (Vite, localhost:8080)
 npm run build        # production build
 npm run build:dev    # dev-mode build
 npm run lint         # ESLint
