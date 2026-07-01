@@ -10,7 +10,7 @@ A peer-to-peer toy marketplace web app where parents can buy and sell second-han
 
 The screenshot below was captured automatically by the **`ui-end-to-end-tester`** Claude Code subagent — invoked with a single prompt. The agent restarted the dev server, set the viewport to iPhone 12 Pro (390 × 844), navigated to the homepage, saved the screenshot, and closed the browser — no manual browser interaction required.
 
-![Homepage captured by ui-end-to-end-tester subagent](homepage-001.png)
+![Homepage captured by ui-end-to-end-tester subagent](test_images/homepage-001.png)
 
 ## Screenshots
 
